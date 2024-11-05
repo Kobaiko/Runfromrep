@@ -28,14 +28,14 @@ export async function loadAssets() {
     playButton: { type: 'image', src: '/assets/play_button.png' },
     restartButton: { type: 'image', src: '/assets/restart_button.png' },
 
-    // Player sprites
+    // Player sprites - Fixed case sensitivity
     playerSprites: [
-      { type: 'image', src: '/assets/player/player_0.png' },
-      { type: 'image', src: '/assets/player/player_1.png' },
-      { type: 'image', src: '/assets/player/player_2.png' },
-      { type: 'image', src: '/assets/player/player_3.png' },
-      { type: 'image', src: '/assets/player/player_4.png' },
-      { type: 'image', src: '/assets/player/player_5.png' },
+      { type: 'image', src: '/assets/player/Player_0.png' },
+      { type: 'image', src: '/assets/player/Player_1.png' },
+      { type: 'image', src: '/assets/player/Player_2.png' },
+      { type: 'image', src: '/assets/player/Player_3.png' },
+      { type: 'image', src: '/assets/player/Player_4.png' },
+      { type: 'image', src: '/assets/player/Player_5.png' },
     ],
 
     // Obstacles and collectibles
@@ -60,19 +60,28 @@ export async function loadAssets() {
   const assets = {};
   const errors = [];
 
-  for (const [key, value] of Object.entries(assetDefinitions)) {
-    try {
-      if (Array.isArray(value)) {
-        assets[key] = await Promise.all(value.map(item => 
-          item.type === 'image' ? loadImage(item.src) : loadSound(item.src)
-        ));
-      } else {
-        assets[key] = await (value.type === 'image' ? loadImage(value.src) : loadSound(value.src));
-      }
-    } catch (error) {
-      console.error(`Failed to load asset: ${key}`, error);
-      errors.push({ key, error });
+  try {
+    // Load player sprites first
+    if (assetDefinitions.playerSprites) {
+      assets.playerSprites = await Promise.all(
+        assetDefinitions.playerSprites.map(sprite => loadImage(sprite.src))
+      );
     }
+
+    // Load remaining assets
+    for (const [key, value] of Object.entries(assetDefinitions)) {
+      if (key !== 'playerSprites') {
+        try {
+          assets[key] = await (value.type === 'image' ? loadImage(value.src) : loadSound(value.src));
+        } catch (error) {
+          console.error(`Failed to load asset: ${key}`, error);
+          errors.push({ key, error });
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load assets:', error);
+    throw error;
   }
 
   if (errors.length > 0) {

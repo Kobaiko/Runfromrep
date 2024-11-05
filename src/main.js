@@ -52,14 +52,14 @@ async function init() {
 }
 
 function handleKeyDown(e) {
-  if (e.code === 'Space' && game && !game.isGameOver) {
+  if (e.code === 'Space' && game) {
     e.preventDefault();
     game.handleKeyDown(e.code);
   }
 }
 
 function handleKeyUp(e) {
-  if (e.code === 'Space' && game && !game.isGameOver) {
+  if (e.code === 'Space' && game) {
     game.handleKeyUp(e.code);
   }
 }
@@ -71,12 +71,16 @@ function showInstructions() {
 
 function startGame() {
   instructionsScreen.classList.add('hidden');
-  game.start();
+  if (game) {
+    game.start();
+  }
 }
 
 function restartGame() {
   gameOverScreen.classList.add('hidden');
-  game.start();
+  if (game) {
+    game.start();
+  }
 }
 
 function showGameOverScreen(score) {
