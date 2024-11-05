@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Escape from Responsibility</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    <div id="splash-screen">
+      <button id="start-button" class="image-button"></button>
+    </div>
+    <div id="instructions-screen" class="hidden">
+      <button id="play-button" class="image-button"></button>
+    </div>
+    <div id="game-over-screen" class="hidden">
+      <div class="score-text">התוצאה שלך:<span id="final-score"></span></div>
+      <button id="restart-button" class="image-button"></button>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

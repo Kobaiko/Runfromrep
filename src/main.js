@@ -17,24 +17,55 @@ canvas.height = 600;
 let game;
 let assets;
 
+function showGameOverScreen(score) {
+  finalScoreElement.textContent = ` ${score}`;
+  gameOverScreen.classList.remove('hidden');
+}
+
 async function init() {
   try {
-    console.log('Starting asset loading...');
-    assets = await loadAssets();
-    console.log('Assets loaded successfully');
+    // Show loading state
+    startButton.style.display = 'none';
+    const loadingText = document.createElement('p');
+    loadingText.textContent = 'Loading...';
+    splashScreen.appendChild(loadingText);
 
+    assets = await loadAssets();
+    
+    if (!assets || !assets.playerSprites || assets.playerSprites.length === 0) {
+      throw new Error('Failed to load player sprites');
+    }
+
+    // Create game instance
     game = new Game(canvas, ctx, assets, showGameOverScreen);
 
-    // Set backgrounds
-    splashScreen.style.backgroundImage = `url(${assets.splashScreen.src})`;
-    instructionsScreen.style.backgroundImage = `url(${assets.instructionsScreen.src})`;
-    gameOverScreen.style.backgroundImage = `url(${assets.gameOverScreen.src})`;
+    // Set backgrounds only if assets loaded successfully
+    if (assets.splashScreen) {
+      splashScreen.style.backgroundImage = `url(${assets.splashScreen.src})`;
+    }
+    if (assets.instructionsScreen) {
+      instructionsScreen.style.backgroundImage = `url(${assets.instructionsScreen.src})`;
+    }
+    if (assets.gameOverScreen) {
+      gameOverScreen.style.backgroundImage = `url(${assets.gameOverScreen.src})`;
+    }
     
     // Set button images
-    startButton.style.backgroundImage = `url(${assets.startButton.src})`;
-    playButton.style.backgroundImage = `url(${assets.playButton.src})`;
-    restartButton.style.backgroundImage = `url(${assets.restartButton.src})`;
+    if (assets.startButton) {
+      startButton.style.backgroundImage = `url(${assets.startButton.src})`;
+    }
+    if (assets.playButton) {
+      playButton.style.backgroundImage = `url(${assets.playButton.src})`;
+    }
+    if (assets.restartButton) {
+      restartButton.style.backgroundImage = `url(${assets.restartButton.src})`;
+    }
 
+    // Remove loading text and show start button
+    splashScreen.removeChild(loadingText);
+    startButton.style.display = 'block';
+
+    // Add event listeners
     startButton.addEventListener('click', showInstructions);
     playButton.addEventListener('click', startGame);
     restartButton.addEventListener('click', restartGame);
@@ -42,12 +73,15 @@ async function init() {
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
 
-    // Show the splash screen
+    // Show splash screen
     splashScreen.classList.remove('hidden');
-    console.log('Initialization complete');
   } catch (error) {
-    console.error('Failed to initialize the game:', error);
-    alert(`Failed to initialize the game: ${error.message}\nPlease check the console for more details.`);
+    console.error('Game initialization failed:', error);
+    // Show error message to user
+    const errorMessage = document.createElement('p');
+    errorMessage.textContent = 'Failed to load game resources. Please refresh the page.';
+    errorMessage.style.color = 'red';
+    splashScreen.appendChild(errorMessage);
   }
 }
 
@@ -81,11 +115,6 @@ function restartGame() {
   if (game) {
     game.start();
   }
-}
-
-function showGameOverScreen(score) {
-  finalScoreElement.textContent = score;
-  gameOverScreen.classList.remove('hidden');
 }
 
 init();

@@ -50,8 +50,17 @@ canvas {
   display: none !important;
 }
 
+.score-text {
+  font-size: 20px;
+  color: white;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  direction: rtl;
+  margin: 0;
+  padding: 0;
+}
+
 #final-score {
-  font-size: 24px;
-  color: #FFD700;
-  margin-bottom: 20px;
+  margin-right: 10px;
 }

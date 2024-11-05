@@ -11,9 +11,9 @@ export default class Game {
         this.ctx = ctx;
         this.assets = assets;
         this.onGameOver = onGameOver;
-        this.GROUND_HEIGHT = 100; // Ground height is 100px
-        this.GROUND_LEVEL = this.canvas.height - this.GROUND_HEIGHT; // Ground level is at the top of the ground image
-        this.player = new Player(50, this.GROUND_LEVEL - 100, assets.playerSprites); // Position player just above ground
+        this.GROUND_HEIGHT = 100;
+        this.GROUND_LEVEL = this.canvas.height - this.GROUND_HEIGHT;
+        this.player = new Player(50, this.GROUND_LEVEL - 100, assets.playerSprites);
         this.parallaxBackground = new ParallaxBackground(
             assets.backgroundImage,
             assets.groundImage,
@@ -29,12 +29,10 @@ export default class Game {
         this.score = 0;
         this.gameSpeed = 2;
         this.spawnTimer = 0;
-        this.pointAssetTimer = 0;
-        this.lastObstacleX = 0;
-        this.minObstacleDistance = 400;
+        this.lastSpawnTime = 0;
+        this.minSpawnInterval = 120; // Minimum frames between spawns
         this.isGameOver = false;
         this.keys = {};
-        this.hasJumpedOverObstacle = false;
 
         this.assets.backgroundMusic.loop = true;
         this.gameLoop = this.gameLoop.bind(this);
@@ -45,6 +43,9 @@ export default class Game {
         this.reset();
         this.assets.backgroundMusic.currentTime = 0;
         this.assets.backgroundMusic.play();
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+        }
         this.gameLoop();
     }
 
@@ -56,8 +57,7 @@ export default class Game {
         this.score = 0;
         this.gameSpeed = 2;
         this.spawnTimer = 0;
-        this.pointAssetTimer = 0;
-        this.lastObstacleX = 0;
+        this.lastSpawnTime = 0;
         this.isGameOver = false;
         this.player = new Player(50, this.GROUND_LEVEL - 100, this.assets.playerSprites);
     }
@@ -65,15 +65,12 @@ export default class Game {
     spawnObstacle() {
         const types = ['sign', 'barrel', 'judge'];
         const type = types[Math.floor(Math.random() * types.length)];
-        
-        if (this.canvas.width - this.lastObstacleX >= this.minObstacleDistance) {
-            const obstacle = new Obstacle(this.canvas.width, this.GROUND_LEVEL - 70, type, this.assets[`${type}Sprite`]);
-            this.obstacles.push(obstacle);
-            this.lastObstacleX = obstacle.x;
-        }
+        const obstacle = new Obstacle(this.canvas.width, this.GROUND_LEVEL - 70, type, this.assets[`${type}Sprite`]);
+        this.obstacles.push(obstacle);
     }
 
-    spawnCollectible(type, spawnX) {
+    spawnCollectible(type) {
+        const spawnX = this.canvas.width;
         if (type === 'rabbi') {
             const rabbi = new Rabbi(spawnX, this.GROUND_LEVEL - 70, this.assets.rabbiSprite);
             this.rabbis.push(rabbi);
@@ -81,39 +78,32 @@ export default class Game {
             const channel14 = new Channel14(spawnX, this.GROUND_LEVEL - 70, this.assets.channel14Sprite);
             this.channel14s.push(channel14);
         } else if (type === 'coin') {
-            const coin = new Coin(spawnX, this.GROUND_LEVEL - 120, this.assets.coinSprite); // Coins slightly higher
+            const coin = new Coin(spawnX, this.GROUND_LEVEL - 120, this.assets.coinSprite);
             this.coins.push(coin);
         }
     }
 
     spawnObjects() {
         this.spawnTimer++;
-        this.pointAssetTimer++;
 
-        // Randomize between obstacles and collectibles
-        if (this.spawnTimer >= Math.floor(Math.random() * 60) + 60) {
-            this.spawnTimer = 0;
+        if (this.spawnTimer - this.lastSpawnTime >= this.minSpawnInterval) {
             const rand = Math.random();
-            const spawnX = this.canvas.width;
-
-            let canSpawn = true;
-            this.obstacles.forEach(obstacle => {
-                if (Math.abs(spawnX - obstacle.x) < 100) {
-                    canSpawn = false;
-                }
-            });
-
-            if (canSpawn) {
-                if (rand < 0.4) {
-                    this.spawnObstacle();
-                } else if (rand < 0.7) {
-                    this.spawnCollectible('rabbi', spawnX);
-                } else if (rand < 0.9) {
-                    this.spawnCollectible('channel14', spawnX);
+            
+            // 50% chance for obstacle, 50% for collectibles
+            if (rand < 0.5) {
+                this.spawnObstacle();
+            } else {
+                const collectibleRand = Math.random();
+                if (collectibleRand < 0.4) {
+                    this.spawnCollectible('rabbi');
+                } else if (collectibleRand < 0.7) {
+                    this.spawnCollectible('channel14');
                 } else {
-                    this.spawnCollectible('coin', spawnX);
+                    this.spawnCollectible('coin');
                 }
             }
+            
+            this.lastSpawnTime = this.spawnTimer;
         }
     }
 
@@ -132,7 +122,6 @@ export default class Game {
     }
 
     checkCollisions() {
-        // Check obstacle collisions
         for (const obstacle of this.obstacles) {
             if (this.player.collidesWith(obstacle)) {
                 this.isGameOver = true;
@@ -142,31 +131,28 @@ export default class Game {
             }
         }
 
-        // Check rabbi collisions
         for (let i = this.rabbis.length - 1; i >= 0; i--) {
             if (this.player.collidesWith(this.rabbis[i])) {
                 this.rabbis.splice(i, 1);
-                this.score += 100;
+                this.score += 5;
                 this.assets.rabbiSound.currentTime = 0;
                 this.assets.rabbiSound.play();
             }
         }
 
-        // Check channel14 collisions
         for (let i = this.channel14s.length - 1; i >= 0; i--) {
             if (this.player.collidesWith(this.channel14s[i])) {
                 this.channel14s.splice(i, 1);
-                this.score += 50;
-                this.assets.coinSound.currentTime = 0;
-                this.assets.coinSound.play();
+                this.score += 5;
+                this.assets.channel14Sound.currentTime = 0;
+                this.assets.channel14Sound.play();
             }
         }
 
-        // Check coin collisions
         for (let i = this.coins.length - 1; i >= 0; i--) {
             if (this.player.collidesWith(this.coins[i])) {
                 this.coins.splice(i, 1);
-                this.score += 10;
+                this.score += 5;
                 this.assets.coinSound.currentTime = 0;
                 this.assets.coinSound.play();
             }
@@ -180,7 +166,6 @@ export default class Game {
         this.parallaxBackground.update();
         this.spawnObjects();
 
-        // Update obstacles
         for (let i = this.obstacles.length - 1; i >= 0; i--) {
             this.obstacles[i].update(this.gameSpeed);
             if (this.obstacles[i].x + this.obstacles[i].width < 0) {
@@ -188,7 +173,6 @@ export default class Game {
             }
         }
 
-        // Update rabbis
         for (let i = this.rabbis.length - 1; i >= 0; i--) {
             this.rabbis[i].update(this.gameSpeed);
             if (this.rabbis[i].x + this.rabbis[i].width < 0) {
@@ -196,7 +180,6 @@ export default class Game {
             }
         }
 
-        // Update channel14s
         for (let i = this.channel14s.length - 1; i >= 0; i--) {
             this.channel14s[i].update(this.gameSpeed);
             if (this.channel14s[i].x + this.channel14s[i].width < 0) {
@@ -204,7 +187,6 @@ export default class Game {
             }
         }
 
-        // Update coins
         for (let i = this.coins.length - 1; i >= 0; i--) {
             this.coins[i].update(this.gameSpeed);
             if (this.coins[i].x + this.coins[i].width < 0) {
@@ -218,15 +200,15 @@ export default class Game {
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Draw background
         this.parallaxBackground.draw(this.ctx);
         
-        // Draw score
         this.ctx.fillStyle = 'white';
         this.ctx.font = '20px "Press Start 2P"';
-        this.ctx.fillText(`Score: ${this.score}`, 20, 40);
+        this.ctx.textAlign = 'right';
+        const scoreText = `${this.score} :התוצאה שלך`;
+        this.ctx.fillText(scoreText, this.canvas.width - 20, 40);
+        this.ctx.textAlign = 'left';
 
-        // Draw game elements
         this.player.draw(this.ctx);
         this.obstacles.forEach(obstacle => obstacle.draw(this.ctx));
         this.rabbis.forEach(rabbi => rabbi.draw(this.ctx));

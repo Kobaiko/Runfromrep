@@ -11,8 +11,8 @@ export default class Player {
         this.animationSpeed = 8;
         this.animationCounter = 0;
         this.velocityY = 0;
-        this.gravity = 0.6;
-        this.jumpStrength = -15;
+        this.gravity = 0.35;        // Further reduced gravity
+        this.jumpStrength = -15;    // Increased jump strength
         this.isJumping = false;
         this.jumpCooldown = 0;
     }
@@ -21,7 +21,7 @@ export default class Player {
         this.velocityY += this.gravity;
         this.y += this.velocityY;
 
-        const groundLevel = 600 - 100; // Match the game's ground height
+        const groundLevel = 600 - 100;
         if (this.y > groundLevel - this.height) {
             this.y = groundLevel - this.height;
             this.velocityY = 0;
@@ -32,15 +32,14 @@ export default class Player {
             this.jumpCooldown--;
         }
 
-        // Update animation frame
         if (!this.isJumping) {
             this.animationCounter++;
             if (this.animationCounter >= this.animationSpeed) {
-                this.currentFrame = (this.currentFrame + 1) % 5 + 1; // Cycle through frames 1-5
+                this.currentFrame = (this.currentFrame + 1) % 5 + 1;
                 this.animationCounter = 0;
             }
         } else {
-            this.currentFrame = 0; // Use standing frame while jumping
+            this.currentFrame = 0;
         }
     }
 
@@ -57,11 +56,24 @@ export default class Player {
     }
 
     collidesWith(object) {
+        const hitboxPadding = 25;
+        const playerHitbox = {
+            x: this.x + hitboxPadding,
+            y: this.y + hitboxPadding,
+            width: this.width - (hitboxPadding * 2),
+            height: this.height - (hitboxPadding * 2)
+        };
+
+        // Only check collision if we're not clearly above the obstacle
+        if (this.velocityY > 0 && playerHitbox.y < object.y - playerHitbox.height) {
+            return false;
+        }
+
         return (
-            this.x < object.x + object.width &&
-            this.x + this.width > object.x &&
-            this.y < object.y + object.height &&
-            this.y + this.height > object.y
+            playerHitbox.x < object.x + object.width &&
+            playerHitbox.x + playerHitbox.width > object.x &&
+            playerHitbox.y < object.y + object.height &&
+            playerHitbox.y + playerHitbox.height > object.y
         );
     }
 
@@ -76,6 +88,6 @@ export default class Player {
     }
 
     isAbove(obstacle) {
-        return this.y < obstacle.y;
+        return this.y + this.height < obstacle.y + 20;
     }
 }
